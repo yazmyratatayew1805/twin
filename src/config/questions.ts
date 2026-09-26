@@ -5,7 +5,14 @@ export type BlockId = "psychology" | "lifestyle" | "tastes";
 
 export type Option = { value: string; label: string };
 
-type Base = { id: string; block: BlockId; text: string; hint?: string };
+type Base = {
+  id: string;
+  block: BlockId;
+  text: string;
+  hint?: string;
+  /** Короткая тема для объяснений пары: «режим дня», «дети»… */
+  topic?: string;
+};
 
 export type ScaleQuestion = Base & {
   type: "scale";
@@ -137,6 +144,7 @@ export const QUESTIONS: Question[] = [
   // ── Блок 1. Психология: ценности ──────────────────────────────────────────────
   {
     id: "kids",
+    topic: "дети",
     block: "psychology",
     type: "choice",
     text: "Дети?",
@@ -148,6 +156,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "money",
+    topic: "деньги",
     block: "psychology",
     type: "choice",
     text: "Пришла премия. Что с ней будет?",
@@ -159,6 +168,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "priority",
+    topic: "карьера или семья",
     block: "psychology",
     type: "choice",
     text: "Что сейчас в приоритете?",
@@ -170,6 +180,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "place",
+    topic: "где жить",
     block: "psychology",
     type: "choice",
     text: "Где вы видите себя через десять лет?",
@@ -181,6 +192,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "relocation",
+    topic: "переезды",
     block: "psychology",
     type: "choice",
     text: "Переехать в другой город или страну ради новой жизни?",
@@ -192,6 +204,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "religion",
+    topic: "религия",
     block: "psychology",
     type: "choice",
     text: "Какое место в вашей жизни занимает религия?",
@@ -235,6 +248,7 @@ export const QUESTIONS: Question[] = [
   // ── Блок 2. Биоритмы и образ жизни ───────────────────────────────────────────
   {
     id: "chronotype",
+    topic: "режим дня",
     block: "lifestyle",
     type: "choice",
     text: "Вы сова или жаворонок?",
@@ -246,6 +260,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "sport",
+    topic: "спорт",
     block: "lifestyle",
     type: "choice",
     text: "Спорт в вашей жизни — это…",
@@ -258,6 +273,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "food",
+    topic: "еда",
     block: "lifestyle",
     type: "choice",
     text: "Как вы едите?",
@@ -270,6 +286,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "parties",
+    topic: "вечеринки",
     block: "lifestyle",
     type: "choice",
     text: "Сколько вечеринок в месяц — идеально?",
@@ -283,6 +300,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "habits",
+    topic: "алкоголь и курение",
     block: "lifestyle",
     type: "choice",
     text: "Алкоголь и курение?",
@@ -295,6 +313,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "pets",
+    topic: "животные",
     block: "lifestyle",
     type: "choice",
     text: "Животные?",
@@ -308,6 +327,7 @@ export const QUESTIONS: Question[] = [
   // ── Блок 3. Вкусы ────────────────────────────────────────────────────────────
   {
     id: "music",
+    topic: "музыка",
     block: "tastes",
     type: "multi",
     max: 5,
@@ -332,6 +352,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "movies",
+    topic: "кино и сериалы",
     block: "tastes",
     type: "multi",
     max: 5,
@@ -355,6 +376,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "weekend",
+    topic: "идеальные выходные",
     block: "tastes",
     type: "multi",
     max: 3,

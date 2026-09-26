@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import type { Answers } from "@/config/questions";
 import { embedText, toPgVector } from "@/lib/ai/embeddings";
+import { computeMatchesFor } from "@/lib/matching-service";
 import { answersSchema } from "@/lib/quiz";
 import { rateLimit } from "@/lib/rate-limit";
 import { getUserContext } from "@/lib/supabase/context";
@@ -43,6 +44,14 @@ export async function submitAnswers(answers: Answers): Promise<SubmitState> {
   if (error) {
     console.error("submitAnswers failed:", error.message);
     return { error: "Не получилось сохранить ответы. Попробуйте ещё раз." };
+  }
+
+  // Совместимость со всеми остальными. Ошибка расчёта не теряет анкету:
+  // ответы уже сохранены, пары восстановит «пересчитать всё» в админке.
+  try {
+    await computeMatchesFor(ctx.supabaseAdmin, ctx.user.id);
+  } catch (e) {
+    console.error("computeMatchesFor failed:", e instanceof Error ? e.message : e);
   }
 
   redirect("/results");

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "embeddings:backfill": "tsx scripts/backfill-embeddings.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed": "tsx --conditions=react-server scripts/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

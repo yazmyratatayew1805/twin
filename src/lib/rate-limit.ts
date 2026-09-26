@@ -1,5 +1,4 @@
 import "server-only";
-import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -22,6 +21,8 @@ export async function rateLimit(
 }
 
 export async function clientIp(): Promise<string> {
+  // Ленивый импорт: модуль используется и вне Next.js (seed-скрипт).
+  const { headers } = await import("next/headers");
   const h = await headers();
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
 }
