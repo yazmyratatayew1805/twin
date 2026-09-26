@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 // Разбирает ссылку из письма и передаёт её серверу (/auth/session), который ставит куки.
@@ -28,8 +28,13 @@ function credentialsFromUrl() {
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [failed, setFailed] = useState(false);
+  const started = useRef(false);
 
   useEffect(() => {
+    // Ссылка одноразовая: не обрабатываем её второй раз (StrictMode вызывает эффект дважды).
+    if (started.current) return;
+    started.current = true;
+
     const credentials = credentialsFromUrl();
     // Убираем токены из адресной строки, чтобы они не попали в историю и скриншоты.
     window.history.replaceState(null, "", window.location.pathname);

@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
         ? await supabase.auth.verifyOtp({ token_hash: data.token_hash, type: "email" })
         : await supabase.auth.exchangeCodeForSession(data.code);
 
-  if (error) return NextResponse.json({ ok: false }, { status: 401 });
+  if (error) {
+    console.error("auth/session failed:", error.name, error.status, error.message);
+    return NextResponse.json({ ok: false }, { status: 401 });
+  }
   return NextResponse.json({ ok: true });
 }
