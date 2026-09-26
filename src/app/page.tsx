@@ -28,9 +28,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           вы <span className="font-semibold text-primary">совпадёте</span>. Никакой
           магии — только анкета на 3–5 минут и немного математики.
         </p>
-        <Button asChild size="lg" className="h-14 rounded-full px-8 text-lg">
-          <Link href="/login">Найти свою пару</Link>
-        </Button>
+        <div className="flex flex-col items-center gap-3 sm:flex-row">
+          <Button asChild size="lg" className="h-14 rounded-full px-8 text-lg">
+            <Link href="/login">Найти свою пару</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="h-14 rounded-full px-8 text-lg">
+            <Link href="/pair/start">Проверить нашу пару</Link>
+          </Button>
+        </div>
       </section>
 
       <footer className="mx-auto flex w-full max-w-3xl flex-col items-center gap-2 px-4 pb-8">

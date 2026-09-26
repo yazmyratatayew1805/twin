@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Answers } from "@/config/questions";
 import { checkRedFlags } from "@/lib/ai/red-flags";
+import { pairModeUserIds } from "@/lib/pair";
 import {
   compatibility,
   finalScore,
@@ -27,7 +28,9 @@ type MatchRow = {
   updated_at: string;
 };
 
+/** Участники общей выдачи: с анкетой и не в режиме проверки пары. */
 async function loadParticipants(admin: SupabaseClient): Promise<Person[]> {
+  const excluded = await pairModeUserIds(admin);
   const people: Person[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await admin
@@ -37,6 +40,7 @@ async function loadParticipants(admin: SupabaseClient): Promise<Person[]> {
       .range(from, from + PAGE - 1);
     if (error) throw new Error(`loadParticipants: ${error.message}`);
     for (const row of data) {
+      if (excluded.has(row.user_id)) continue;
       const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
       people.push({
         id: row.user_id,

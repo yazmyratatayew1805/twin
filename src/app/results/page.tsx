@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Disclaimer } from "@/components/disclaimer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
+import { isPairMode } from "@/lib/pair";
 import { getTopMatches, type ResultCard } from "@/lib/results";
 import { getUserContext } from "@/lib/supabase/context";
 import { HeroMatch, MatchCard } from "./match-card";
@@ -20,6 +21,25 @@ export default async function ResultsPage() {
     .eq("user_id", ctx.user.id)
     .maybeSingle();
   if (!answers) redirect("/quiz");
+
+  // Вариант А: в режиме проверки пары общей выдачи нет — ни в одну сторону.
+  if (await isPairMode(ctx.supabaseAdmin, ctx.user.id)) {
+    return (
+      <main className="flex flex-1 flex-col">
+        <SiteHeader />
+        <section className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-6 px-4 py-12 text-center">
+          <p className="text-6xl">💞</p>
+          <h1 className="text-3xl font-bold tracking-tight">Вы в режиме проверки пары</h1>
+          <p className="text-muted-foreground">
+            Здесь только вы двое: других участников вы не видите, и они не видят вас.
+          </p>
+          <Button asChild size="lg" className="h-12 rounded-full text-base">
+            <Link href="/pair">К проверке пары</Link>
+          </Button>
+        </section>
+      </main>
+    );
+  }
 
   let cards: ResultCard[] = [];
   try {
@@ -69,6 +89,9 @@ export default async function ResultsPage() {
         )}
 
         <div className="flex flex-col items-center gap-4 pt-4">
+          <Button asChild size="lg" variant="outline" className="h-12 rounded-full text-base">
+            <Link href="/pair">Проверить совместимость с конкретным человеком</Link>
+          </Button>
           <Button asChild variant="ghost">
             <Link href="/quiz?retake=1">Пройти анкету заново</Link>
           </Button>

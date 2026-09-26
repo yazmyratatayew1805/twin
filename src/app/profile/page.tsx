@@ -54,6 +54,11 @@ export default async function ProfilePage({ searchParams }: PageProps<"/profile"
             <Link href="/quiz">К анкете</Link>
           </Button>
         )}
+        {profile?.is_admin && (
+          <Button asChild variant="outline" size="lg" className="h-12 rounded-full text-base">
+            <Link href="/admin">Админка</Link>
+          </Button>
+        )}
 
         <div className="flex flex-col gap-3 border-t pt-8">
           <p className="text-sm text-muted-foreground">

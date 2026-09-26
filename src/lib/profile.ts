@@ -16,3 +16,5 @@ export type Profile = {
 
 export const MIN_AGE = 18;
 export const UNDERAGE_COOKIE = "twin_underage";
+/** Куда вести после анкеты: «pair» — сразу к проверке пары, минуя общую выдачу. */
+export const NEXT_COOKIE = "twin_next";

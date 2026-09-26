@@ -1,8 +1,10 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Answers } from "@/config/questions";
 import { embedText, toPgVector } from "@/lib/ai/embeddings";
+import { NEXT_COOKIE } from "@/lib/profile";
 import { answersSchema } from "@/lib/quiz";
 import { rateLimit } from "@/lib/rate-limit";
 import { getUserContext } from "@/lib/supabase/context";
@@ -43,6 +45,13 @@ export async function submitAnswers(answers: Answers): Promise<SubmitState> {
   if (error) {
     console.error("submitAnswers failed:", error.message);
     return { error: "Не получилось сохранить ответы. Попробуйте ещё раз." };
+  }
+
+  // Пришли ради проверки пары — сразу к коду, минуя общую выдачу.
+  const cookieStore = await cookies();
+  if (cookieStore.get(NEXT_COOKIE)?.value === "pair") {
+    cookieStore.delete(NEXT_COOKIE);
+    redirect("/pair");
   }
 
   // Расчёт совместимости идёт на экране «алгоритм анализирует…».
