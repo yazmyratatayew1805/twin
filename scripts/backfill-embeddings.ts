@@ -1,23 +1,18 @@
 // Досчитывает эмбеддинг «идеального дня» для анкет, где его нет
-// (например, анкету прошли, пока не было ключа OpenAI или API был недоступен).
-// Запуск: npx tsx scripts/backfill-embeddings.ts
-import { config } from "dotenv";
+// (например, анкету прошли, пока не было ключа Gemini или API был недоступен).
+// Запуск: npm run embeddings:backfill
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { config } from "dotenv";
 
-config({ path: ".env.local" });
-
-const MODEL = "text-embedding-3-small";
+config({ path: ".env.local", quiet: true });
 
 async function main() {
-  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY не задан в .env.local");
+  if (!process.env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY не задан в .env.local");
+  const { embedText, toPgVector } = await import("../src/lib/ai/embeddings");
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SECRET_KEY!,
-    { auth: { persistSession: false } },
-  );
-  const openai = new OpenAI();
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, {
+    auth: { persistSession: false },
+  });
 
   const { data: rows, error } = await supabase
     .from("answers")
@@ -29,11 +24,14 @@ async function main() {
   for (const row of rows) {
     const text = String(row.answers?.ideal_day ?? "").trim();
     if (!text) continue;
-    const res = await openai.embeddings.create({ model: MODEL, input: text });
-    const vector = `[${res.data[0].embedding.join(",")}]`;
+    const embedding = await embedText(text);
+    if (!embedding) {
+      console.log(`✗ ${row.user_id}: Gemini не ответил (ключ, лимит или сеть)`);
+      continue;
+    }
     const { error: updateError } = await supabase
       .from("answers")
-      .update({ day_embedding: vector })
+      .update({ day_embedding: toPgVector(embedding) })
       .eq("user_id", row.user_id);
     console.log(updateError ? `✗ ${row.user_id}: ${updateError.message}` : `✓ ${row.user_id}`);
   }

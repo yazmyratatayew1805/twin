@@ -1,16 +1,23 @@
 import "server-only";
-import OpenAI from "openai";
+import { EMBEDDING_MODEL, geminiClient, withinEmbedBudget, withRetry } from "./gemini";
 
-export const EMBEDDING_MODEL = "text-embedding-3-small";
+/** Размер вектора совпадает с колонкой answers.day_embedding vector(1536). */
 export const EMBEDDING_DIMENSIONS = 1536;
 
-/** Эмбеддинг текста или null, если ключа нет или API недоступен — приложение не должно падать. */
+/** Эмбеддинг текста или null, если ключа нет, бюджет исчерпан или API недоступен — приложение не падает. */
 export async function embedText(text: string): Promise<number[] | null> {
-  if (!process.env.OPENAI_API_KEY) return null;
+  const ai = geminiClient();
+  if (!ai || !(await withinEmbedBudget())) return null;
   try {
-    const client = new OpenAI({ timeout: 15_000, maxRetries: 2 });
-    const res = await client.embeddings.create({ model: EMBEDDING_MODEL, input: text });
-    return res.data[0]?.embedding ?? null;
+    const res = await withRetry(() =>
+      ai.models.embedContent({
+        model: EMBEDDING_MODEL,
+        contents: text,
+        config: { taskType: "SEMANTIC_SIMILARITY", outputDimensionality: EMBEDDING_DIMENSIONS },
+      }),
+    );
+    const values = res.embeddings?.[0]?.values;
+    return values?.length === EMBEDDING_DIMENSIONS ? values : null;
   } catch (error) {
     console.error("embedText failed:", error instanceof Error ? error.message : error);
     return null;

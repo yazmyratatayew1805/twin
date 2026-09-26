@@ -217,14 +217,33 @@ export function finalScore(base: number, redFlags: number): number {
 
 // ── Факты о паре: сильные совпадения и главное различие (для объяснения от ИИ) ─
 
-export type PairFact = { topic: string; text: string; weight: number };
+export type PairFact = {
+  topic: string;
+  /** Короткое описание для ИИ: тема и подписи вариантов, без сырых ответов. */
+  text: string;
+  /** Готовая фраза для шаблонного объяснения, с маленькой буквы. */
+  phrase: string;
+  weight: number;
+};
 
-const TRAIT_TOPICS: Record<BigFiveTrait, string> = {
-  openness: "любопытство к новому",
-  conscientiousness: "организованность",
-  extraversion: "общительность",
-  agreeableness: "доброжелательность",
-  stability: "спокойствие",
+const TRAIT_PHRASES: Record<BigFiveTrait, { topic: string; similar?: string; different?: string; bothHigh?: string }> = {
+  openness: {
+    topic: "любопытство к новому",
+    similar: "у вас похожее любопытство к новому",
+    different: "очень разное любопытство к новому",
+  },
+  conscientiousness: {
+    topic: "организованность",
+    similar: "у вас похожая организованность",
+    different: "очень разная организованность",
+  },
+  extraversion: {
+    topic: "общительность",
+    similar: "у вас похожая общительность",
+    different: "очень разная общительность",
+  },
+  agreeableness: { topic: "доброжелательность", bothHigh: "вы оба очень доброжелательны" },
+  stability: { topic: "спокойствие", bothHigh: "вы оба на редкость спокойны" },
 };
 
 // Насколько важно совпадение и различие по вопросу (для выбора, о чём говорить).
@@ -271,13 +290,19 @@ export function pairFacts(a: Answers, b: Answers) {
       const vb = String(b[q.id]);
       const topic = q.topic ?? q.id;
       if (va === vb) {
-        matches.push({ topic, text: `${topic}: оба выбрали «${label(q, va)}»`, weight: MATCH_WEIGHT[q.id] ?? 1 });
+        matches.push({
+          topic,
+          text: `${topic}: оба выбрали «${label(q, va)}»`,
+          phrase: `в теме «${topic}» вы оба выбрали «${label(q, va)}»`,
+          weight: MATCH_WEIGHT[q.id] ?? 1,
+        });
       } else {
         const hard = q.id === "kids" && hasKidsConflict(a, b);
         const weight = hard ? 5 : (DIFF_WEIGHT[q.id] ?? 1) * (0.5 + 0.5 * distance(q.id, va, vb));
         differences.push({
           topic,
           text: `${topic}: у одного «${label(q, va)}», у другого «${label(q, vb)}»`,
+          phrase: `в теме «${topic}» у одного из вас «${label(q, va)}», а у другого «${label(q, vb)}»`,
           weight,
         });
       }
@@ -285,9 +310,11 @@ export function pairFacts(a: Answers, b: Answers) {
     if (q.type === "multi") {
       const common = list(a[q.id]).filter((v) => list(b[q.id]).includes(v));
       if (common.length) {
+        const items = common.map((v) => label(q, v).toLowerCase()).join(", ");
         matches.push({
           topic: q.topic ?? q.id,
-          text: `${q.topic}: общее — ${common.map((v) => label(q, v).toLowerCase()).join(", ")}`,
+          text: `${q.topic}: общее — ${items}`,
+          phrase: `у вас общее в теме «${q.topic}»: ${items}`,
           weight: 1 + 0.4 * common.length,
         });
       }
@@ -297,14 +324,21 @@ export function pairFacts(a: Answers, b: Answers) {
   const ta = traitScores(a);
   const tb = traitScores(b);
   for (const t of SIMILARITY_TRAITS) {
+    const { topic, similar, different } = TRAIT_PHRASES[t];
     const diff = Math.abs(ta[t] - tb[t]);
-    if (diff <= 0.125) matches.push({ topic: TRAIT_TOPICS[t], text: `похожая ${TRAIT_TOPICS[t]}`, weight: 1.2 });
+    if (diff <= 0.125) matches.push({ topic, text: `похожая черта «${topic}»`, phrase: similar!, weight: 1.2 });
     else if (diff >= 0.5)
-      differences.push({ topic: TRAIT_TOPICS[t], text: `сильно разная ${TRAIT_TOPICS[t]}`, weight: 2 * diff });
+      differences.push({
+        topic,
+        text: `сильно различается черта «${topic}»`,
+        phrase: `у вас ${different}`,
+        weight: 2 * diff,
+      });
   }
   for (const t of LEVEL_TRAITS) {
+    const { topic, bothHigh } = TRAIT_PHRASES[t];
     if (ta[t] >= 0.75 && tb[t] >= 0.75)
-      matches.push({ topic: TRAIT_TOPICS[t], text: `оба с высокой чертой «${TRAIT_TOPICS[t]}»`, weight: 1.2 });
+      matches.push({ topic, text: `у обоих сильная черта «${topic}»`, phrase: bothHigh!, weight: 1.2 });
   }
 
   const byWeight = (x: PairFact, y: PairFact) => y.weight - x.weight;

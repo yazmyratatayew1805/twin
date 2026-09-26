@@ -1,11 +1,8 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { QUESTIONS, type Answers } from "@/config/questions";
 import type { Person } from "@/lib/matching";
-
-export const LLM_MODEL = "claude-haiku-4-5";
+import { generateJson } from "./gemini";
 
 const SYSTEM = `Ты — модуль проверки «красных флагов» в развлекательном приложении знакомств TWIN.
 Каждый участник написал, что для него абсолютно неприемлемо в партнёре, и ответил на анкету.
@@ -46,11 +43,11 @@ function describe(answers: Answers) {
 
 /**
  * Сколько красных флагов (0..2) у пары «основной участник + кандидат».
- * Без ключа или при ошибке API возвращает пустую карту: флаги просто не учитываются.
+ * Без ключа, при исчерпанном бюджете или ошибке API — пустая карта: флаги просто не учитываются.
  */
 export async function checkRedFlags(anchor: Person, candidates: Person[]): Promise<Map<string, number>> {
   const flags = new Map<string, number>();
-  if (!process.env.ANTHROPIC_API_KEY || candidates.length === 0) return flags;
+  if (candidates.length === 0) return flags;
 
   const payload = {
     anchor: { unacceptable: String(anchor.answers.dealbreaker ?? ""), answers: describe(anchor.answers) },
@@ -61,35 +58,22 @@ export async function checkRedFlags(anchor: Person, candidates: Person[]): Promi
     })),
   };
 
-  try {
-    const client = new Anthropic({ timeout: 30_000, maxRetries: 2 });
-    const response = await client.messages.parse({
-      model: LLM_MODEL,
-      max_tokens: 4000,
-      temperature: 0,
-      system: SYSTEM,
-      messages: [
-        {
-          role: "user",
-          content:
-            "Проверь пары «anchor + кандидат». Для каждого кандидата верни candidate_breaks_anchor " +
-            "(ответы кандидата нарушают неприемлемое для anchor) и anchor_breaks_candidate " +
-            "(ответы anchor нарушают неприемлемое для кандидата).\n\n" +
-            JSON.stringify(payload, null, 1),
-        },
-      ],
-      output_config: { format: zodOutputFormat(ResultSchema) },
-    });
+  const result = await generateJson(ResultSchema, {
+    system: SYSTEM,
+    temperature: 0,
+    prompt:
+      "Проверь пары «anchor + кандидат». Для каждого кандидата верни candidate_breaks_anchor " +
+      "(ответы кандидата нарушают неприемлемое для anchor) и anchor_breaks_candidate " +
+      "(ответы anchor нарушают неприемлемое для кандидата).\n\n" +
+      JSON.stringify(payload, null, 1),
+  });
+  if (!result) return flags;
 
-    if (response.stop_reason !== "end_turn" || !response.parsed_output) return flags;
-    for (const r of response.parsed_output.results) {
-      const candidate = candidates[r.id - 1];
-      if (!candidate) continue;
-      const count = Number(r.candidate_breaks_anchor) + Number(r.anchor_breaks_candidate);
-      if (count > 0) flags.set(candidate.id, count);
-    }
-  } catch (error) {
-    console.error("checkRedFlags failed:", error instanceof Error ? error.message : error);
+  for (const r of result.results) {
+    const candidate = candidates[r.id - 1];
+    if (!candidate) continue;
+    const count = Number(r.candidate_breaks_anchor) + Number(r.anchor_breaks_candidate);
+    if (count > 0) flags.set(candidate.id, count);
   }
   return flags;
 }

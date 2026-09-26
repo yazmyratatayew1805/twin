@@ -9,7 +9,6 @@ import {
   type Breakdown,
   type Person,
 } from "@/lib/matching";
-import { rateLimit } from "@/lib/rate-limit";
 
 /** Красные флаги проверяем только для топ-20 кандидатов — бережём запросы к API. */
 export const RED_FLAG_TOP_N = 20;
@@ -70,10 +69,11 @@ function scoreAgainst(me: Person, people: Person[], sims: Map<string, number>): 
     .sort((x, y) => y.base - x.base);
 }
 
-/** Флаги для топ-кандидатов с общим дневным лимитом на LLM, чтобы не сжечь бюджет. */
+const aiEnabled = () => Boolean(process.env.GEMINI_API_KEY);
+
+/** Флаги для топ-кандидатов. Дневной бюджет бесплатного тарифа учитывается внутри generateJson. */
 async function redFlagsFor(anchor: Person, candidates: Person[]): Promise<Map<string, number>> {
-  if (!process.env.ANTHROPIC_API_KEY || candidates.length === 0) return new Map();
-  if (!(await rateLimit("llm:red-flags:global", 3000, 86400, { failOpen: false }))) return new Map();
+  if (!aiEnabled() || candidates.length === 0) return new Map();
   return checkRedFlags(anchor, candidates);
 }
 
@@ -121,7 +121,7 @@ export async function computeMatchesFor(admin: SupabaseClient, userId: string) {
     admin,
     scored.map((s) => toRow(me.id, s.other.id, s.base, s.breakdown, flags.get(s.other.id) ?? 0, now)),
   );
-  return { pairs: scored.length, redFlagsChecked: process.env.ANTHROPIC_API_KEY ? top.length : 0 };
+  return { pairs: scored.length, redFlagsChecked: aiEnabled() ? top.length : 0 };
 }
 
 /** «Пересчитать всё» из админки: каждая пара считается один раз, флаги — для топ-20 каждого. */
@@ -168,6 +168,6 @@ export async function recalculateAll(admin: SupabaseClient) {
   return {
     participants: people.length,
     pairs: pairs.size,
-    redFlagsChecked: process.env.ANTHROPIC_API_KEY ? checked.size : 0,
+    redFlagsChecked: aiEnabled() ? checked.size : 0,
   };
 }

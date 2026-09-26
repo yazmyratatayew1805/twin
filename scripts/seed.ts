@@ -48,8 +48,8 @@ async function main() {
   console.log(`Удалено seed-участников: ${old.length}`);
   if (process.argv.includes("--reset")) return;
 
-  if (!process.env.OPENAI_API_KEY) console.log("OPENAI_API_KEY нет — эмбеддинги не считаем, «Вкусы» только по Жаккару.");
-  if (!process.env.ANTHROPIC_API_KEY) console.log("ANTHROPIC_API_KEY нет — красные флаги не проверяем.");
+  if (!process.env.GEMINI_API_KEY)
+    console.log("GEMINI_API_KEY нет — без эмбеддингов («Вкусы» только по Жаккару) и без проверки красных флагов.");
 
   const names = new Map<string, string>();
   for (const p of SEED_PROFILES) {

@@ -2,7 +2,7 @@
 
 Веб-приложение для поиска идеальной пары по мотивам сериала «Жуки». Это развлекательный эксперимент, а не научный сервис знакомств.
 
-Стек: Next.js (App Router) + TypeScript, Tailwind CSS + shadcn/ui, Supabase (Postgres, Auth, pgvector), Claude Haiku 4.5, OpenAI text-embedding-3-small, Vercel.
+Стек: Next.js (App Router) + TypeScript, Tailwind CSS + shadcn/ui, Supabase (Postgres, Auth, pgvector), Google Gemini (бесплатный тариф: объяснения, красные флаги, эмбеддинги), Vercel.
 
 ## Запуск локально
 
