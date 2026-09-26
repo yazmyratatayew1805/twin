@@ -2,26 +2,49 @@
 //   npm run seed          — пересоздать seed-участников и посчитать пары
 //   npm run seed -- --reset — только удалить seed-участников
 // Запускается с --conditions=react-server, чтобы переиспользовать серверные модули приложения.
+import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 
-config({ path: ".env.local" });
+config({ path: ".env.local", quiet: true });
+
+// Локальная сеть (VPN) рвёт соединения — seed повторяет запросы при сетевых ошибках.
+// Тело запросов supabase-js — строка, поэтому повтор безопасен.
+const retryingFetch: typeof fetch = async (input, init) => {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(input, init);
+    } catch (error) {
+      if (attempt >= 6) throw error;
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  }
+};
 
 const EMAIL_PREFIX = "twin-seed-";
 const EMAIL_DOMAIN = "@example.com";
 
 async function main() {
-  const { createAdminClient } = await import("../src/lib/supabase/admin");
   const { embedText, toPgVector } = await import("../src/lib/ai/embeddings");
   const { recalculateAll } = await import("../src/lib/matching-service");
   const { SEED_PROFILES } = await import("./seed-profiles");
 
-  const admin = createAdminClient();
+  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: retryingFetch },
+  });
 
   // Удаляем прежних seed-участников (каскадом уходят профили, ответы и пары).
   const { data: list, error: listError } = await admin.auth.admin.listUsers({ perPage: 1000 });
   if (listError) throw listError;
   const old = list.users.filter((u) => u.email?.startsWith(EMAIL_PREFIX));
-  for (const u of old) await admin.auth.admin.deleteUser(u.id);
+  for (const u of old) {
+    // Сеть бывает нестабильной: ошибку удаления не глотаем, а повторяем.
+    for (let attempt = 1; ; attempt++) {
+      const { error } = await admin.auth.admin.deleteUser(u.id);
+      if (!error) break;
+      if (attempt === 3) throw new Error(`Не удалось удалить ${u.email}: ${error.message}`);
+    }
+  }
   console.log(`Удалено seed-участников: ${old.length}`);
   if (process.argv.includes("--reset")) return;
 
