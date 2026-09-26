@@ -9,8 +9,8 @@ export const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "gemini-emb
 
 // Дневные лимиты с запасом до квоты бесплатного тарифа. Когда лимит исчерпан —
 // приложение не падает: объяснения становятся шаблонными, флаги не проверяются.
-const DAILY_TEXT_LIMIT = Number(process.env.GEMINI_DAILY_TEXT_LIMIT || 900);
-const DAILY_EMBED_LIMIT = Number(process.env.GEMINI_DAILY_EMBED_LIMIT || 900);
+const DAILY_TEXT_LIMIT = Number(process.env.GEMINI_DAILY_TEXT_LIMIT || 450); // у gemini-3.5-flash-lite на бесплатном тарифе 500 в сутки
+const DAILY_EMBED_LIMIT = Number(process.env.GEMINI_DAILY_EMBED_LIMIT || 900); // у gemini-embedding-2 — 1000 в сутки
 
 let client: GoogleGenAI | null = null;
 
