@@ -4,8 +4,8 @@ import { z } from "zod";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Бесплатный тариф Google AI Studio. Модели можно поменять переменными окружения.
-export const TEXT_MODEL = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash-lite";
-export const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001";
+export const TEXT_MODEL = process.env.GEMINI_TEXT_MODEL || "gemini-3.5-flash-lite";
+export const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-2";
 
 // Дневные лимиты с запасом до квоты бесплатного тарифа. Когда лимит исчерпан —
 // приложение не падает: объяснения становятся шаблонными, флаги не проверяются.
